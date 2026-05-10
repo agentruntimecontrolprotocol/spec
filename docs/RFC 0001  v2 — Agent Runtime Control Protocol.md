@@ -448,10 +448,10 @@ Until `session.accepted` is received, clients **MUST NOT** send any non-handshak
       "token": "..."
     },
     "client": {
-      "kind": "claude-code",
+      "kind": "example-client",
       "version": "1.4.2",
       "fingerprint": "sha256:...",
-      "principal": "nick@fizzpop.dev"
+      "principal": "alice@example.com"
     },
     "capabilities": { "...": "..." }
   }
@@ -476,7 +476,7 @@ Runtimes **SHOULD** include their identity in `session.accepted`:
   "payload": {
     "session_id": "sess_123",
     "runtime": {
-      "kind": "openclaw",
+      "kind": "example-runtime",
       "version": "0.7.1",
       "fingerprint": "sha256:...",
       "trust_level": "trusted"
@@ -813,7 +813,7 @@ Response:
   "correlation_id": "<id of the request>",
   "payload": {
     "choice_id": "fix",
-    "responded_by": "telegram:nick",
+    "responded_by": "chat:operator",
     "responded_at": "2026-05-09T13:42:11Z"
   }
 }
@@ -1266,7 +1266,7 @@ Authenticated tool invocation with progress, a permission challenge, and artifac
   "payload": {
     "auth": { "scheme": "bearer", "token": "..." },
     "client": {
-      "kind": "claude-code",
+      "kind": "example-client",
       "version": "1.4.2",
       "fingerprint": "sha256:..."
     },
