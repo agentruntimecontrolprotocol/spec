@@ -1,0 +1,29 @@
+// ARCP job lifecycle FSM (dark)
+digraph JobLifecycle {
+  rankdir=TB; bgcolor="transparent"; compound=true; fontname="Helvetica";
+  splines=ortho; nodesep=0.32; ranksep=0.55; pad="0.35,0.25";
+
+  node [shape=ellipse, style="filled", fillcolor="#334155", color="#475569",
+        fontname="Helvetica", fontsize=11, fontcolor="#F1F5F9", penwidth=1.0];
+  edge [fontname="Helvetica", fontsize=9, fontcolor="#94A3B8", color="#64748B",
+        penwidth=1.1, arrowsize=0.75, arrowhead=vee];
+
+  Pending [label=<<FONT POINT-SIZE="12"><B>pending</B></FONT>>,
+           fillcolor="#3B82F6", color="#2563EB", fontcolor="white", penwidth=1.4];
+  Running [label="running"];
+
+  Success   [label=<<FONT POINT-SIZE="12"><B>success</B></FONT>>,
+             fillcolor="#F59E0B", color="#D97706", fontcolor="white", penwidth=1.4];
+  Error     [label="error"];
+  Cancelled [label="cancelled"];
+  TimedOut  [label="timed_out"];
+
+  Pending -> Running [label="first event"];
+
+  Running -> Success   [label="job.result"];
+  Running -> Error     [label="job.error"];
+  Running -> Cancelled [label="cancel"];
+  Running -> TimedOut  [label="deadline"];
+
+  { rank=same; Success; Error; Cancelled; TimedOut; }
+}

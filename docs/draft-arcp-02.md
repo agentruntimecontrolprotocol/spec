@@ -107,32 +107,10 @@ ARCP does **not** specify:
 
 ARCP operates *around* tool calls, not *as* a tool protocol:
 
-```
-   ┌─────────────────────────────────────┐
-   │           Runtime Host              │
-   │                                     │
-   │  ┌──────────────────────────────┐   │
-   │  │  ARCP (this spec)            │   │
-   │  │  · jobs, leases, delegation  │   │
-   │  └──────────────┬───────────────┘   │
-   │                 │                   │
-   │       ┌─────────┴──────────┐        │
-   │       │   Agent Processes  │        │
-   │       │  (as MCP clients)  │        │
-   │       └─────────┬──────────┘        │
-   │                 │                   │
-   │       ┌─────────┴──────────┐        │
-   │       │  MCP servers       │        │
-   │       │  · tools, HITL,    │        │
-   │       │    integrations    │        │
-   │       └────────────────────┘        │
-   └─────────────────────────────────────┘
-            ▲ ARCP
-            │
-   ┌────────┴────────┐
-   │   ARCP Client   │  (CLI, IDE, dashboard, ...)
-   └─────────────────┘
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/system-architecture-dark.svg">
+  <img alt="ARCP system architecture — Runtime Host with ARCP, Agent Processes (as MCP clients), and MCP servers; ARCP Client connects via ARCP" src="diagrams/system-architecture-light.svg">
+</picture>
 
 A single trace, identified by a W3C `trace_id`, MAY span an ARCP job,
 its delegated sub-jobs, and any MCP tool invocations those jobs make.
@@ -446,20 +424,10 @@ result in error `DUPLICATE_KEY`.
 
 A job's status transitions are:
 
-```
-                 ┌─────────┐
-                 │ pending │  (post-submit, pre-first-event)
-                 └────┬────┘
-                      ▼
-                 ┌─────────┐
-                 │ running │
-                 └────┬────┘
-            ┌────────┼────────┬────────────┐
-            ▼        ▼        ▼            ▼
-       ┌────────┬────────┬──────────┬──────────────┐
-       │success │ error  │cancelled │  timed_out   │
-       └────────┴────────┴──────────┴──────────────┘
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/job-lifecycle-dark.svg">
+  <img alt="ARCP job lifecycle FSM — pending → running → {success | error | cancelled | timed_out}" src="diagrams/job-lifecycle-light.svg">
+</picture>
 
 The terminal events `job.result` (success) and `job.error`
 (failure/cancelled/timed_out) carry a `final_status` field
