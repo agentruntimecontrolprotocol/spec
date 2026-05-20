@@ -1,10 +1,9 @@
 # ARCP: Agent Runtime Control Protocol
 
 ```
-Internet-Draft                                           [Author Name]
-Intended status: Standards Track                                  ARCP
+Internet-Draft                                              Nick Ficano
+Intended status: Standards Track                                   ARCP
 Expires: November 13, 2026                                 May 13, 2026
-Obsoletes: ARCP v1.0
 ```
 
 **Agent Runtime Control Protocol (ARCP) — Version 1.1**
@@ -12,8 +11,8 @@ Obsoletes: ARCP v1.0
 ## Status of This Memo
 
 This document is a draft specification distributed for review and
-discussion. It supersedes ARCP v1.0. Implementations are encouraged
-but should expect breaking changes before v1.1 is finalized.
+discussion. Implementations are encouraged but should expect breaking
+changes before v1.1 is finalized.
 
 Distribution of this memo is unlimited.
 
@@ -21,55 +20,16 @@ Distribution of this memo is unlimited.
 
 The Agent Runtime Control Protocol (ARCP) is a transport-agnostic
 wire protocol for submitting, observing, and controlling long-running
-AI agent jobs. v1.1 extends v1.0 with explicit liveness signaling,
-event acknowledgement and flow control, job introspection,
-cross-session job subscription, agent versioning, time-bounded
-leases, budget enforcement, structured progress reporting, and
-streamed results — all within the original four concerns of
-identity, durability, authority, and observability.
+AI agent jobs. ARCP provides explicit liveness signaling, event
+acknowledgement and flow control, job introspection, cross-session job
+subscription, agent versioning, time-bounded leases, budget
+enforcement, structured progress reporting, and streamed results —
+all within the four concerns of identity, durability, authority, and
+observability.
 
-## Changes from v1.0
+## Deferred
 
-v1.1 is a backward-compatible additive revision. A v1.0 client
-connecting to a v1.1 runtime functions normally; a v1.1 client
-connecting to a v1.0 runtime degrades gracefully via the capability
-exchange in `session.welcome`.
-
-**New session messages:**
-
-- `session.ping` / `session.pong` for explicit liveness (§6.4).
-- `session.ack` for window-based event flow control (§6.5).
-- `session.list_jobs` / `session.jobs` for read-only introspection
-  (§6.6).
-
-**New job messages:**
-
-- `job.subscribe` / `job.subscribed` / `job.unsubscribe` for
-  re-attaching to a running job from a different session (§7.6).
-
-**New event kinds:**
-
-- `progress` — structured progress reporting (§8.2).
-- `result_chunk` — streamed result for large outputs (§8.4).
-
-**Lease extensions:**
-
-- Optional `lease_constraints` on `job.submit` carrying `expires_at`
-  for time-bounded authority (§9.5).
-- New `cost.budget` capability with runtime-enforced counters (§9.6).
-
-**Other changes:**
-
-- Agent identifiers MAY include a version suffix (`name@version`)
-  (§7.5).
-- `session.welcome.payload.capabilities.agents` MAY use a richer
-  object shape advertising available versions (§7.5).
-- Three new error codes (§12): `BUDGET_EXHAUSTED`, `LEASE_EXPIRED`,
-  `AGENT_VERSION_NOT_AVAILABLE`.
-- Capability negotiation in `session.hello.payload.capabilities`
-  formalizes feature discovery (§6.2).
-
-**Not in v1.1 (deferred):**
+The following are out of scope for this version:
 
 - Job pause/unpause.
 - Job priority and scheduling hints.
@@ -87,29 +47,29 @@ exchange in `session.welcome`.
    6.1. Authentication
    6.2. Hello / Welcome
    6.3. Resume
-   6.4. Heartbeats _(new in 1.1)_
-   6.5. Event Acknowledgement _(new in 1.1)_
-   6.6. Job Listing _(new in 1.1)_
+   6.4. Heartbeats
+   6.5. Event Acknowledgement
+   6.6. Job Listing
    6.7. Close
 7. Jobs
    7.1. Submission and Acceptance
    7.2. Idempotency
    7.3. Lifecycle
    7.4. Cancellation
-   7.5. Agent Versioning _(new in 1.1)_
-   7.6. Subscription _(new in 1.1)_
+   7.5. Agent Versioning
+   7.6. Subscription
 8. Job Events
    8.1. Event Envelope
    8.2. Event Kinds
    8.3. Ordering and Sequence Numbers
-   8.4. Result Streaming _(new in 1.1)_
+   8.4. Result Streaming
 9. Leases
    9.1. Capability Model
    9.2. Lease Grammar
    9.3. Enforcement
    9.4. Lease Subsetting
-   9.5. Lease Expiration _(new in 1.1)_
-   9.6. Budget Capability _(new in 1.1)_
+   9.5. Lease Expiration
+   9.6. Budget Capability
 10. Delegation
 11. Trace Propagation
 12. Error Taxonomy
@@ -122,16 +82,16 @@ exchange in `session.welcome`.
 
 ## 1. Introduction
 
-(Unchanged from v1.0 §1. Briefly: ARCP defines the durable
-execution envelope around AI agent work — sessions, jobs, resumable
-event streams, capability-bounded leases, and delegation — while
-remaining agnostic about agent implementation and tool transport.
-Tool exposure is the concern of protocols such as MCP. Telemetry
-export is the concern of OpenTelemetry. ARCP composes with them.)
+ARCP defines the durable execution envelope around AI agent work —
+sessions, jobs, resumable event streams, capability-bounded leases,
+and delegation — while remaining agnostic about agent implementation
+and tool transport. Tool exposure is the concern of protocols such
+as MCP. Telemetry export is the concern of OpenTelemetry. ARCP
+composes with them.
 
 ### 1.1. Scope
 
-ARCP v1.1 specifies:
+ARCP specifies:
 
 - The wire format for client-runtime communication.
 - The lifecycle of sessions, jobs, and event streams.
@@ -149,8 +109,8 @@ mechanisms beyond bearer tokens.
 
 ### 1.3. Relationship to Other Protocols
 
-(Unchanged. ARCP wraps the agent function; MCP exposes tools the
-agent calls; the LLM SDK powers the agent's reasoning loop.)
+ARCP wraps the agent function; MCP exposes tools the agent calls;
+the LLM SDK powers the agent's reasoning loop.
 
 ---
 
@@ -165,8 +125,6 @@ document are to be interpreted as described in [RFC2119] and
 
 ### 2.2. Terminology
 
-(Unchanged from v1.0 §2.2, plus:)
-
 - **Budget counter**: A runtime-maintained accumulator associated
   with a `cost.budget` capability that decrements as cost-bearing
   metrics are reported.
@@ -180,13 +138,13 @@ document are to be interpreted as described in [RFC2119] and
 
 ## 3. Protocol Overview
 
-A v1.1 interaction extends the v1.0 lifecycle:
+A typical ARCP interaction proceeds as follows:
 
 1. Client opens transport.
 2. `session.hello` declares client identity, auth, and feature
    capabilities. `session.welcome` responds with `session_id`,
    `resume_token`, `heartbeat_interval_sec`, and runtime capabilities
-   including agent inventory with versions.
+   including an agent inventory with versions.
 3. Either peer MAY emit `session.ping` if idle and expect a prompt
    `session.pong`. Either peer MAY treat extended absence as
    `HEARTBEAT_LOST`.
@@ -196,35 +154,35 @@ A v1.1 interaction extends the v1.0 lifecycle:
 5. Client submits `job.submit` (optionally with `lease_constraints`
    like `expires_at`). Runtime returns `job.accepted` with the
    effective lease and any budget counters initialized.
-6. Runtime emits `job.event` messages. New `progress` and
-   `result_chunk` kinds extend the v1.0 set.
+6. Runtime emits `job.event` messages. `progress` and `result_chunk`
+   event kinds provide structured progress and large-output streaming.
 7. The client MAY at any time send `session.list_jobs` for a
    read-only inventory of jobs in this session, or `job.subscribe`
    to attach to a job started in another session.
 8. The job terminates with `job.result` or `job.error`. If the
    result was chunked, `job.result.payload.result_id` references
    the assembled chunks.
-9. Resume, cancel, and close work as in v1.0.
+9. Resume, cancel, and close follow the session and job lifecycle
+   described in §§6–7.
 
 ---
 
 ## 4. Transport
 
-(Unchanged. WebSocket mandatory for network deployments; stdio
-mandatory for in-process children; HTTP/2, QUIC, MQ optional.)
+WebSocket is mandatory for network deployments. stdio is mandatory
+for in-process children. HTTP/2, QUIC, and message-queue transports
+are optional.
 
 ---
 
 ## 5. Wire Format
 
-(Unchanged. JSON object envelope with `arcp`, `id`, `type`,
-`session_id`, `trace_id`, `job_id`, `event_seq`, `payload` fields.)
+The wire format is a JSON object envelope with `arcp`, `id`, `type`,
+`session_id`, `trace_id`, `job_id`, `event_seq`, and `payload`
+fields.
 
-Per v1.0 §5.1, implementations MUST ignore unknown top-level
-envelope fields. v1.1 messages are forward-compatible with v1.0
-clients in this respect: a v1.0 client receiving a v1.1-only
-message type SHOULD ignore it rather than treating the connection as
-broken.
+Implementations MUST ignore unknown top-level envelope fields,
+ensuring forward compatibility as the protocol evolves.
 
 ---
 
@@ -232,12 +190,13 @@ broken.
 
 ### 6.1. Authentication
 
-(Unchanged. Bearer token in `session.hello.payload.auth.token`.)
+Authentication uses a bearer token passed in
+`session.hello.payload.auth.token`.
 
 ### 6.2. Hello / Welcome
 
-`session.hello` is extended with a `features` capability list so the
-runtime can detect what the client supports and adapt:
+`session.hello` carries a `features` capability list so the runtime
+can detect what the client supports and adapt:
 
 ```json
 {
@@ -263,8 +222,8 @@ runtime can detect what the client supports and adapt:
 }
 ```
 
-`session.welcome` is extended with feature acknowledgement, an
-agent inventory enriched with version information, and a heartbeat
+`session.welcome` responds with feature acknowledgement, an agent
+inventory enriched with version information, and a heartbeat
 interval:
 
 ```json
@@ -303,27 +262,20 @@ interval:
 }
 ```
 
-Backward compatibility:
-
-- A v1.0 client sends no `features` array and continues to receive
-  the v1.0 `agents` shape if the runtime advertises one. v1.1
-  runtimes SHOULD advertise the rich shape unconditionally;
-  v1.0 clients ignore the extra structure per envelope rules.
-- A v1.0 runtime returning the flat `agents: ["name", ...]` shape
-  is interpreted by v1.1 clients as "no version information
-  available; submit bare names only."
-
 The effective feature set is the intersection of `session.hello`
 features and `session.welcome` features. Either peer MUST NOT use a
 feature outside that intersection.
 
 ### 6.3. Resume
 
-(Unchanged from v1.0 §6.3. Resume token rotates on every successful
-welcome. `RESUME_WINDOW_EXPIRED` is returned if the buffer no longer
-covers the requested `last_event_seq`.)
+The resume token rotates on every successful welcome. A client
+reconnecting after a transport drop presents `last_event_seq` and
+its most recent `resume_token` in `session.resume`. The runtime
+replays buffered events from that sequence. `RESUME_WINDOW_EXPIRED`
+is returned if the buffer no longer covers the requested
+`last_event_seq`.
 
-### 6.4. Heartbeats _(new in 1.1)_
+### 6.4. Heartbeats
 
 **Feature flag:** `heartbeat`.
 
@@ -365,7 +317,7 @@ to exist for the resume window.
 Heartbeats are NOT included in `event_seq`. They are session
 control messages, not job events.
 
-### 6.5. Event Acknowledgement _(new in 1.1)_
+### 6.5. Event Acknowledgement
 
 **Feature flag:** `ack`.
 
@@ -400,7 +352,7 @@ messages are not included in `event_seq`.
 client to present `last_event_seq` independently; the runtime does
 not assume an unacknowledged event is unreceived.
 
-### 6.6. Job Listing _(new in 1.1)_
+### 6.6. Job Listing
 
 **Feature flag:** `list_jobs`.
 
@@ -462,7 +414,10 @@ events for a listed job, use `job.subscribe` (§7.6).
 
 ### 6.7. Close
 
-(Unchanged from v1.0 §6.4.)
+The client sends `session.close` to terminate the session gracefully.
+The runtime acknowledges with `session.closed`. In-flight jobs are
+not affected; they continue running and remain resumable within the
+resume window.
 
 ---
 
@@ -470,7 +425,7 @@ events for a listed job, use `job.subscribe` (§7.6).
 
 ### 7.1. Submission and Acceptance
 
-`job.submit` is extended with optional `lease_constraints`:
+`job.submit` carries optional `lease_constraints`:
 
 ```json
 {
@@ -516,25 +471,29 @@ initial budget counters if `cost.budget` is in the lease:
 
 If `lease_constraints` is absent the lease has no expiration. If
 `cost.budget` is absent from the lease, no budget enforcement
-applies. v1.0 clients omit both and operate exactly as before.
+applies.
 
 ### 7.2. Idempotency
 
-(Unchanged from v1.0 §7.2.)
+If `idempotency_key` is present on `job.submit`, the runtime MUST
+return the same `job.accepted` payload for any subsequent submission
+with the same key and identical parameters. A reused key with
+conflicting parameters returns `DUPLICATE_KEY`.
 
 ### 7.3. Lifecycle
 
-(Unchanged. Terminal states: `success`, `error`, `cancelled`,
-`timed_out`. v1.1 adds two error scenarios surfaced via the error
-taxonomy but introducing no new lifecycle states:
-`BUDGET_EXHAUSTED` and `LEASE_EXPIRED`. Both result in
-`final_status: "error"`.)
+Terminal states are `success`, `error`, `cancelled`, and
+`timed_out`. `BUDGET_EXHAUSTED` and `LEASE_EXPIRED` errors both
+result in `final_status: "error"`.
 
 ### 7.4. Cancellation
 
-(Unchanged from v1.0 §7.4.)
+The submitting session MAY send `job.cancel` at any time for a
+non-terminal job. The runtime acknowledges with `job.cancelled` and
+emits `job.error` with code `CANCELLED` and `final_status:
+"cancelled"`.
 
-### 7.5. Agent Versioning _(new in 1.1)_
+### 7.5. Agent Versioning
 
 **Feature flag:** `agent_versions`.
 
@@ -564,7 +523,7 @@ listings as `agent: "name@version"`. Once resolved, a job's agent
 version is fixed; the runtime MUST NOT migrate a running job to a
 different version.
 
-### 7.6. Subscription _(new in 1.1)_
+### 7.6. Subscription
 
 **Feature flag:** `subscribe`.
 
@@ -638,7 +597,7 @@ Subscription does NOT grant the subscriber authority to cancel the
 job, mutate its lease, or interact with it beyond observation.
 Cancellation is reserved for the session that submitted the job.
 
-### 7.7. Cross-Reference: Subscribed Jobs vs Resumed Sessions
+### 7.7. Subscribed Jobs vs Resumed Sessions
 
 Subscription and resume are distinct mechanisms:
 
@@ -660,25 +619,26 @@ SHOULD use resume.
 
 ### 8.1. Event Envelope
 
-(Unchanged from v1.0 §8.1.)
+Each event is a JSON object with `type`, `session_id`, `job_id`,
+`event_seq`, and `payload` fields. The `payload` carries a `kind`
+discriminator and a `body` object whose shape is kind-specific.
 
 ### 8.2. Event Kinds
 
-The following event `kind` values are reserved in v1.1. New kinds
-relative to v1.0 are marked.
+The following event `kind` values are defined:
 
-| kind           | body shape                                   | New in 1.1 |
-| -------------- | -------------------------------------------- | ---------- | --- |
-| `log`          | `{ level, message }`                         |            |
-| `thought`      | `{ text }`                                   |            |
-| `tool_call`    | `{ tool, args, call_id }`                    |            |
-| `tool_result`  | `{ call_id, result                           | error }`   |     |
-| `status`       | `{ phase, message? }`                        |            |
-| `metric`       | `{ name, value, unit?, dimensions? }`        |            |
-| `artifact_ref` | `{ uri, content_type, byte_size?, sha256? }` |            |
-| `delegate`     | (see §10)                                    |            |
-| `progress`     | `{ current, total?, units?, message? }`      | ✓          |
-| `result_chunk` | (see §8.4)                                   | ✓          |
+| kind           | body shape                                   |
+| -------------- | -------------------------------------------- |
+| `log`          | `{ level, message }`                         |
+| `thought`      | `{ text }`                                   |
+| `tool_call`    | `{ tool, args, call_id }`                    |
+| `tool_result`  | `{ call_id, result \| error }`               |
+| `status`       | `{ phase, message? }`                        |
+| `metric`       | `{ name, value, unit?, dimensions? }`        |
+| `artifact_ref` | `{ uri, content_type, byte_size?, sha256? }` |
+| `delegate`     | (see §10)                                    |
+| `progress`     | `{ current, total?, units?, message? }`      |
+| `result_chunk` | (see §8.4)                                   |
 
 #### 8.2.1. `progress` body
 
@@ -704,11 +664,12 @@ for clients rendering progress UI.
 
 ### 8.3. Ordering and Sequence Numbers
 
-(Unchanged from v1.0 §8.3. Sequence numbers are session-scoped,
-strictly monotonic, and gap-free across reconnects within the
-buffer window.)
+Sequence numbers are session-scoped, strictly monotonic, and
+gap-free across reconnects within the buffer window. A client that
+receives an unexpected gap SHOULD treat the session as broken and
+attempt resume.
 
-### 8.4. Result Streaming _(new in 1.1)_
+### 8.4. Result Streaming
 
 **Feature flag:** `result_chunk`.
 
@@ -764,8 +725,7 @@ The terminating `job.result` references the streamed result:
 
 When `result_id` is present, the assembled result is the
 concatenation of the chunks' decoded `data` in `chunk_seq` order.
-When `result_id` is absent, the result is inline in the payload
-(as in v1.0).
+When `result_id` is absent, the result is inline in the payload.
 
 Implementations MUST NOT mix inline result and `result_chunk` in
 the same job. Once a `result_chunk` is emitted, the terminating
@@ -777,13 +737,15 @@ the same job. Once a `result_chunk` is emitted, the terminating
 
 ### 9.1. Capability Model
 
-(Unchanged from v1.0 §9.1.)
+A lease is a set of capability grants expressed as namespace/pattern
+pairs. Every authority-bearing operation performed by an agent MUST
+be covered by a capability in the job's effective lease. The runtime
+enforces the lease at every operation boundary.
 
 ### 9.2. Lease Grammar
 
-(Unchanged from v1.0 §9.2, with one addition:)
-
-Reserved top-level namespaces in v1.1:
+Capability patterns are namespace-prefixed glob strings. Reserved
+top-level namespaces:
 
 | Namespace        | Semantics                                                |
 | ---------------- | -------------------------------------------------------- |
@@ -796,15 +758,20 @@ Reserved top-level namespaces in v1.1:
 
 ### 9.3. Enforcement
 
-(Unchanged from v1.0 §9.3.)
+The runtime MUST evaluate the effective lease before authorizing any
+operation. An operation not covered by the lease MUST fail with
+`PERMISSION_DENIED`. Enforcement is synchronous and occurs before
+the operation is dispatched.
 
 ### 9.4. Lease Subsetting
 
-(Unchanged from v1.0 §9.4, with three additions for budget and
-expiration:)
+A delegated lease MUST be a strict subset of the delegating lease.
+No delegated grant may name a resource or capability the parent
+lease does not cover. Delegation that would expand authority is
+rejected with `LEASE_SUBSET_VIOLATION`.
 
 A delegated lease's `cost.budget` MUST NOT exceed the parent's
-remaining budget in any currency, at the time of delegation. If
+remaining budget in any currency at the time of delegation. If
 the parent's lease has `cost.budget: ["USD:5.00"]` and has spent
 $3.00, a child's `cost.budget` MUST NOT exceed `USD:2.00`.
 
@@ -817,7 +784,7 @@ none; if the parent had `expires_at`, the child inherits it
 implicitly (i.e., the child's effective expiration is `min(child
 expires_at, parent expires_at)`).
 
-### 9.5. Lease Expiration _(new in 1.1)_
+### 9.5. Lease Expiration
 
 **Feature flag:** `lease_expires_at`.
 
@@ -847,11 +814,10 @@ Enforcement:
   operation. The runtime MAY proactively terminate jobs whose leases
   have expired without waiting for a violation.
 
-Renewal is NOT supported in v1.1. To extend authority, the
-submitting client MUST cancel and resubmit. Renewal may be
-considered for a future version.
+Renewal is NOT supported. To extend authority, the submitting
+client MUST cancel and resubmit.
 
-### 9.6. Budget Capability _(new in 1.1)_
+### 9.6. Budget Capability
 
 **Feature flag:** `cost.budget`.
 
@@ -929,53 +895,54 @@ budget gauges without summing every cost event.
 
 ## 10. Delegation
 
-(Unchanged from v1.0 §10, with two additions covered in §9.4:
-delegated `cost.budget` MUST NOT exceed parent's remaining budget;
-delegated `expires_at` MUST NOT exceed parent's.)
+An agent MAY delegate a subset of its lease to a sub-agent by
+emitting a `delegate` event. The sub-agent receives a derived lease
+bounded by §9.4 subsetting rules. Delegated `cost.budget` MUST NOT
+exceed the parent's remaining budget; delegated `expires_at` MUST
+NOT exceed the parent's.
 
 ---
 
 ## 11. Trace Propagation
 
-(Unchanged from v1.0 §11. v1.1 adds two recommended span
-attributes: `arcp.lease.expires_at` and `arcp.budget.remaining`.)
+ARCP propagates W3C Trace Context. The `trace_id` envelope field
+carries the `traceparent` value for the operation. Runtimes MUST
+forward the trace context to tool servers and sub-agents.
+
+Recommended span attributes: `arcp.lease.expires_at` and
+`arcp.budget.remaining`.
 
 ---
 
 ## 12. Error Taxonomy
 
-v1.1 adds three error codes to the v1.0 set of twelve, for a
-total of fifteen canonical codes:
+The following error codes are defined:
 
-| Code                          | Meaning                                                        |
-| ----------------------------- | -------------------------------------------------------------- |
-| `PERMISSION_DENIED`           | Operation rejected by lease enforcement.                       |
-| `LEASE_SUBSET_VIOLATION`      | Delegation request expanded beyond parent lease.               |
-| `JOB_NOT_FOUND`               | Referenced `job_id` does not exist or is not visible.          |
-| `DUPLICATE_KEY`               | `idempotency_key` reuse with conflicting parameters.           |
-| `AGENT_NOT_AVAILABLE`         | Requested `agent` is not registered.                           |
-| `AGENT_VERSION_NOT_AVAILABLE` | Agent name resolved but requested version unavailable. _(new)_ |
-| `CANCELLED`                   | Job ended due to client cancellation.                          |
-| `TIMEOUT`                     | Job exceeded `max_runtime_sec`.                                |
-| `RESUME_WINDOW_EXPIRED`       | Resume attempted after the buffer window closed.               |
-| `HEARTBEAT_LOST`              | Peer detected counterparty disconnection.                      |
-| `LEASE_EXPIRED`               | Lease's `expires_at` reached during execution. _(new)_         |
-| `BUDGET_EXHAUSTED`            | A `cost.budget` counter reached zero. _(new)_                  |
-| `INVALID_REQUEST`             | Malformed envelope or schema violation.                        |
-| `UNAUTHENTICATED`             | Missing or invalid authentication.                             |
-| `INTERNAL_ERROR`              | Unrecoverable runtime fault. Always retryable.                 |
+| Code                          | Meaning                                                |
+| ----------------------------- | ------------------------------------------------------ |
+| `PERMISSION_DENIED`           | Operation rejected by lease enforcement.               |
+| `LEASE_SUBSET_VIOLATION`      | Delegation request expanded beyond parent lease.       |
+| `JOB_NOT_FOUND`               | Referenced `job_id` does not exist or is not visible.  |
+| `DUPLICATE_KEY`               | `idempotency_key` reuse with conflicting parameters.   |
+| `AGENT_NOT_AVAILABLE`         | Requested `agent` is not registered.                   |
+| `AGENT_VERSION_NOT_AVAILABLE` | Agent name resolved but requested version unavailable. |
+| `CANCELLED`                   | Job ended due to client cancellation.                  |
+| `TIMEOUT`                     | Job exceeded `max_runtime_sec`.                        |
+| `RESUME_WINDOW_EXPIRED`       | Resume attempted after the buffer window closed.       |
+| `HEARTBEAT_LOST`              | Peer detected counterparty disconnection.              |
+| `LEASE_EXPIRED`               | Lease's `expires_at` reached during execution.         |
+| `BUDGET_EXHAUSTED`            | A `cost.budget` counter reached zero.                  |
+| `INVALID_REQUEST`             | Malformed envelope or schema violation.                |
+| `UNAUTHENTICATED`             | Missing or invalid authentication.                     |
+| `INTERNAL_ERROR`              | Unrecoverable runtime fault. Always retryable.         |
 
-Error payload shape and the `retryable` semantic are unchanged
-from v1.0 §12. `LEASE_EXPIRED` and `BUDGET_EXHAUSTED` MUST be
-returned with `retryable: false` — naive retry will fail
-identically.
+Error payloads carry a `retryable` boolean. `LEASE_EXPIRED` and
+`BUDGET_EXHAUSTED` MUST be returned with `retryable: false` —
+naive retry will fail identically.
 
 ---
 
 ## 13. Examples
-
-The v1.0 examples remain illustrative. This section adds five
-flows specific to v1.1 features.
 
 ### 13.1. Heartbeat Liveness
 
@@ -1185,8 +1152,6 @@ R → C:  session.error    { code: "AGENT_VERSION_NOT_AVAILABLE",
 
 ## 14. Security Considerations
 
-v1.0 security considerations apply unchanged. v1.1 adds:
-
 **Subscription scope.** `job.subscribe` from a session whose
 principal differs from the job's submitter is a privilege
 escalation vector if deployment policy is permissive. Runtimes
@@ -1227,7 +1192,7 @@ trails in regulated deployments.
 
 ## 15. IANA Considerations
 
-v1.1 adds to the future-registry items from v1.0 §15:
+The following items are proposed for future registration:
 
 - The `cost.budget` capability namespace and its amount-string
   format.
@@ -1263,17 +1228,24 @@ v1.1 adds to the future-registry items from v1.0 §15:
 
 ### 16.2. Informative
 
-- ARCP v1.0 (this document obsoletes it).
 - Model Context Protocol (MCP): https://modelcontextprotocol.io/
 - OpenTelemetry: https://opentelemetry.io/
+
+[RFC2119]: https://www.rfc-editor.org/info/rfc2119
+[RFC6455]: https://www.rfc-editor.org/info/rfc6455
+[RFC8174]: https://www.rfc-editor.org/info/rfc8174
+[RFC8259]: https://www.rfc-editor.org/info/rfc8259
+[RFC8446]: https://www.rfc-editor.org/info/rfc8446
+[ISO8601]: https://www.iso.org/standard/70907.html
+[TRACE-CONTEXT]: https://www.w3.org/TR/trace-context/
 
 ---
 
 ## Authors' Addresses
 
 ```
-[Author Name]
-Email: [email@example.com]
+Nick Ficano
+Email: nficano@gmail.com
 ```
 
 ---
