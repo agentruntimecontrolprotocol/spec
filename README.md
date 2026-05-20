@@ -10,6 +10,9 @@ docs/
   diagrams/
     system-architecture-{light,dark}.{dot,svg}
     job-lifecycle-{light,dark}.{dot,svg}
+    seq-*-{light,dark}.{puml,svg}        ← §13 example sequences
+    _theme-{light,dark}.puml             ← shared PlantUML skinparams
+    generate-sequences.py                ← regenerates .puml + .svg
     README.md
 ```
 
@@ -30,14 +33,24 @@ The single authoritative document is [`docs/draft-arcp-1.1.md`](docs/draft-arcp-
 
 ## Diagrams
 
-The `docs/diagrams/` folder contains paired light/dark Graphviz sources for the system architecture and job lifecycle state machine. Edit the `.dot` files; regenerate SVGs with:
+The `docs/diagrams/` folder contains paired light/dark sources in two formats:
+
+- **Graphviz `.dot`** — system architecture and job lifecycle state machine.
+- **PlantUML `.puml`** — the §13 example sequence diagrams.
+
+Regenerate SVGs with:
 
 ```sh
 cd docs/diagrams
+
+# Graphviz
 for f in *.dot; do dot -Tsvg "$f" -o "${f%.dot}.svg"; done
+
+# PlantUML sequences (writes .puml files and renders SVGs)
+python3 generate-sequences.py
 ```
 
-Requires `graphviz`. On macOS: `brew install graphviz`. On Debian/Ubuntu: `apt-get install -y graphviz`.
+Requires `graphviz` and `plantuml`. On macOS: `brew install graphviz plantuml`. On Debian/Ubuntu: `apt-get install -y graphviz plantuml`. See [`docs/diagrams/README.md`](docs/diagrams/README.md) for the full list of diagrams.
 
 ## Contributing
 

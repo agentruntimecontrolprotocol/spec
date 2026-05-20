@@ -1,0 +1,21 @@
+@startuml
+!include _theme-dark.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+R -[$reply_arrow]-> C : job.event [seq=1..40]  (intermediate work)
+
+group chunked result emission (result_id = res_RP1)
+  R -[$reply_arrow]-> C : job.event [seq=41] result_chunk\n{ chunk_seq: 0, data: "...first 1 MB...",\n  encoding: "utf8", more: true }
+  R -[$reply_arrow]-> C : job.event [seq=42..70] (more chunks)
+  R -[$reply_arrow]-> C : job.event [seq=71] result_chunk\n{ chunk_seq: 30, data: "...final chunk...",\n  encoding: "utf8", more: false }
+end
+
+R -[$success_arrow]-> C : <color:$success_text>job.result [seq=72]</color>\n{ final_status: "success",\n  result_id: "res_RP1",\n  result_size: 31_457_280,\n  summary: "Report generated, 31 MB, 31 chunks." }
+
+note over C, R
+  Client accumulates chunks by result_id and assembles
+  the final result. session.ack backpressure (§6.5) is
+  particularly important during chunked emission.
+end note
+@enduml

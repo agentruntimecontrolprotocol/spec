@@ -1,0 +1,26 @@
+@startuml
+!include _theme-dark.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+C -[$client_arrow]>  R : job.submit\n{ agent: "log-tail", ... }
+R -[$reply_arrow]-> C : job.accepted\n{ job_id: job_LT }
+
+group rapid burst
+  R -[$reply_arrow]-> C : job.event [seq=1..100]
+end
+C -[$client_arrow]>  R : session.ack\n{ last_processed_seq: 12 }
+
+group continues
+  R -[$reply_arrow]-> C : job.event [seq=101..200]
+end
+C -[$client_arrow]>  R : session.ack\n{ last_processed_seq: 28 }
+
+R -[$reply_arrow]-> C : job.event [seq=201..300]
+
+note right of R
+  runtime detects lag > threshold
+end note
+
+R -[$accent_arrow]-> C : <color:$accent_text>job.event [seq=301]</color>\n{ kind: "status",\n  body: { phase: "back_pressure",\n          message: "consumer lag 270 events" } }
+@enduml

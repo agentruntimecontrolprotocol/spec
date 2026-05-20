@@ -1,0 +1,22 @@
+@startuml
+!include _theme-light.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+== quiet period: 30s elapse ==
+
+C -[$client_arrow]>  R : session.ping\n{ nonce: "p1", sent_at: "...:43:00Z" }
+R -[$reply_arrow]-> C : session.pong\n{ ping_nonce: "p1", received_at: "...:43:00.020Z" }
+
+== another 30s elapse ==
+
+R -[$reply_arrow]>  C : session.ping\n{ nonce: "p2", sent_at: "...:43:30Z" }
+C -[$client_arrow]-> R : session.pong\n{ ping_nonce: "p2", received_at: "...:43:30.015Z" }
+
+note over C, R
+  Missing pong within 30s closes the transport
+  and surfaces HEARTBEAT_LOST. Jobs keep running
+  server-side and may be resumed within the
+  resume window.
+end note
+@enduml

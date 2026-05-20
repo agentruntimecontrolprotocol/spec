@@ -1,0 +1,60 @@
+' Shared light-theme skinparams for ARCP sequence diagrams.
+scale 1.1
+skinparam backgroundColor transparent
+skinparam defaultFontName TT Commons Pro
+skinparam shadowing false
+skinparam roundcorner 4
+
+skinparam sequence {
+  ParticipantBorderColor      #CBD5E1
+  ParticipantBackgroundColor  white
+  ParticipantFontColor        #1F2937
+  ParticipantFontName         TT Commons Pro
+  ParticipantFontSize         13
+  ParticipantFontStyle        plain
+  ParticipantPadding          16
+
+  ArrowColor                  #94A3B8
+  ArrowFontColor              #475569
+  ArrowFontName               Operator Mono
+  ArrowFontSize               12
+  ArrowFontStyle              plain
+  ArrowThickness              1.1
+
+  LifeLineBorderColor         #E2E8F0
+  LifeLineBackgroundColor     transparent
+
+  GroupBorderColor            #CBD5E1
+  GroupBackgroundColor        #F8FAFC
+  GroupHeaderFontColor        #1F2937
+  GroupHeaderFontSize         12
+  GroupHeaderFontStyle        plain
+  GroupBodyBackgroundColor    transparent
+  GroupFontName               TT Commons Pro
+
+  DividerBorderColor          #E2E8F0
+  DividerBackgroundColor      #F1F5F9
+  DividerFontColor            #475569
+  DividerFontSize             12
+  DividerFontStyle            plain
+
+  NoteBorderColor             #CBD5E1
+  NoteBackgroundColor         #F8FAFC
+  NoteFontColor               #1F2937
+  NoteFontSize                12
+  NoteFontName                TT Commons Pro
+}
+
+' Palette tokens (light)
+!$client_color   = "#3B82F6"
+!$client_arrow   = "#2563EB"
+!$reply_arrow    = "#94A3B8"
+!$muted_arrow    = "#CBD5E1"
+!$accent_arrow   = "#D97706"
+!$accent_text    = "#D97706"
+!$error_arrow    = "#DC2626"
+!$error_text     = "#DC2626"
+!$success_arrow  = "#059669"
+!$success_text   = "#047857"
+!$peer_color     = "#10B981"
+!$gateway_color  = "#8B5CF6"

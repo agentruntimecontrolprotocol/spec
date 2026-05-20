@@ -1,0 +1,15 @@
+@startuml
+!include _theme-dark.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+C -[$client_arrow]>  R : job.submit\n{ agent: "indexer",\n  lease_request: { fs.read: ["/data/**"],\n                   fs.write: ["/index/**"] },\n  lease_constraints: { expires_at: "2026-05-13T20:00:00Z" } }
+R -[$reply_arrow]-> C : job.accepted\n{ job_id: job_IX,\n  lease_constraints: { expires_at: "...20:00:00Z" } }
+
+R -[$reply_arrow]-> C : job.event [seq=N]\n{ kind: "progress",\n  body: { current: 42000, total: 100000, units: "files" } }
+
+== 20:00:00 UTC arrives — job still running ==
+
+R -[$error_arrow]-> C : <color:$error_text>job.event [seq=N+1]</color>\n{ kind: "tool_result",\n  body: { call_id: c_42001,\n          error: { code: "LEASE_EXPIRED",\n                   message: "Lease expired at 20:00:00Z",\n                   retryable: false } } }
+R -[$error_arrow]-> C : <color:$error_text>job.error [seq=N+2]</color>\n{ final_status: "error",\n  code: "LEASE_EXPIRED",\n  message: "Lease expired during execution" }
+@enduml

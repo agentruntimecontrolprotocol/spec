@@ -23,9 +23,9 @@ wire protocol for submitting, observing, and controlling long-running
 AI agent jobs. ARCP provides explicit liveness signaling, event
 acknowledgement and flow control, job introspection, cross-session job
 subscription, agent versioning, time-bounded leases, budget
-enforcement, structured progress reporting, and streamed results —
-all within the four concerns of identity, durability, authority, and
-observability.
+enforcement, lease-bound provisioned credentials, structured progress
+reporting, and streamed results — all within the four concerns of
+identity, durability, authority, and observability.
 
 ## Deferred
 
@@ -70,6 +70,8 @@ The following are out of scope for this version:
    9.4. Lease Subsetting
    9.5. Lease Expiration
    9.6. Budget Capability
+   9.7. Model Capability
+   9.8. Provisioned Credentials
 10. Delegation
 11. Trace Propagation
 12. Error Taxonomy
@@ -213,6 +215,8 @@ can detect what the client supports and adapt:
         "subscribe",
         "lease_expires_at",
         "cost.budget",
+        "model.use",
+        "provisioned_credentials",
         "progress",
         "result_chunk",
         "agent_versions"
@@ -244,6 +248,8 @@ interval:
         "subscribe",
         "lease_expires_at",
         "cost.budget",
+        "model.use",
+        "provisioned_credentials",
         "progress",
         "result_chunk",
         "agent_versions"
@@ -438,7 +444,8 @@ resume window.
     "lease_request": {
       "fs.read":     ["/workspace/myapp/**"],
       "fs.write":    ["/workspace/myapp/src/**"],
-      "cost.budget": ["USD:5.00"]
+      "cost.budget": ["USD:5.00"],
+      "model.use":   ["tier-fast/*"]
     },
     "lease_constraints": {
       "expires_at": "2026-05-13T23:42:00Z"
@@ -463,6 +470,20 @@ initial budget counters if `cost.budget` is in the lease:
     },
     "lease_constraints": { "expires_at": "2026-05-13T23:42:00Z" },
     "budget": { "USD": 5.0 },
+    "credentials": [
+      {
+        "id": "cred_01J...",
+        "scheme": "bearer",
+        "value": "sk-virt-...",
+        "endpoint": "https://gateway.example.com/v1",
+        "profile": "openai",
+        "constraints": {
+          "cost.budget": ["USD:5.00"],
+          "model.use":   ["tier-fast/*"],
+          "expires_at":  "2026-05-13T23:42:00Z"
+        }
+      }
+    ],
     "accepted_at": "2026-05-13T19:30:00Z",
     "trace_id": "4bf92f..."
   }
@@ -471,7 +492,7 @@ initial budget counters if `cost.budget` is in the lease:
 
 If `lease_constraints` is absent the lease has no expiration. If
 `cost.budget` is absent from the lease, no budget enforcement
-applies.
+applies. The `credentials` array is OPTIONAL and governed by §9.8.
 
 ### 7.2. Idempotency
 
@@ -755,6 +776,7 @@ top-level namespaces:
 | `tool.call`      | Calling registered tools; patterns are tool name globs.  |
 | `agent.delegate` | Delegating to sub-agents; patterns are agent name globs. |
 | `cost.budget`    | Cost ceilings; patterns are amount strings (§9.6).       |
+| `model.use`      | LLM model selection; patterns are model name globs (§9.7). |
 
 ### 9.3. Enforcement
 
@@ -783,6 +805,11 @@ A delegated lease MAY omit `lease_constraints` if the parent had
 none; if the parent had `expires_at`, the child inherits it
 implicitly (i.e., the child's effective expiration is `min(child
 expires_at, parent expires_at)`).
+
+A delegated lease's `model.use` patterns MUST resolve to a set of
+permitted models that is a subset of the parent's permitted set.
+A child that names a model the parent does not cover is rejected
+with `LEASE_SUBSET_VIOLATION`.
 
 ### 9.5. Lease Expiration
 
@@ -891,6 +918,147 @@ Runtimes MAY emit these `cost.budget.remaining` metrics
 proactively after material decrements, allowing clients to render
 budget gauges without summing every cost event.
 
+When a `cost.budget` capability is enforced through a provisioned
+credential (§9.8), the upstream is the authoritative budget
+counter for that currency and `BUDGET_EXHAUSTED` MAY first surface
+as a vendor-specific error from the upstream. Runtimes SHOULD
+translate such upstream errors into `BUDGET_EXHAUSTED` at the
+ARCP boundary and SHOULD continue to emit
+`cost.budget.remaining` metrics so clients see consistent budget
+telemetry regardless of which layer is enforcing.
+
+### 9.7. Model Capability
+
+**Feature flag:** `model.use`.
+
+The `model.use` capability declares the set of LLM models the
+agent is authorized to invoke. Patterns are model-name globs
+opaque to the protocol; deployment policy defines the namespace
+(e.g., raw vendor model IDs like `gpt-4o-2024-08-06`, vendor-
+prefixed IDs like `anthropic/claude-3-opus-*`, or runtime-defined
+tiers like `tier-fast/*`).
+
+Example:
+
+```json
+"model.use": ["tier-fast/*", "anthropic/claude-3-haiku-*"]
+```
+
+Enforcement:
+
+- The runtime MUST reject any agent attempt to invoke a model
+  whose identifier does not match at least one pattern. The
+  rejection MUST surface as `PERMISSION_DENIED`.
+- When model invocation is mediated by a provisioned credential
+  (§9.8), the runtime SHOULD bake the same constraint into the
+  credential so the upstream enforces it independently. Both
+  layers enforcing is intentional defense-in-depth, not a
+  contradiction.
+- Absence of `model.use` from the lease grants no implicit model
+  access. A lease that does not name `model.use` MUST be treated
+  as forbidding LLM invocation when the runtime is configured to
+  require it; otherwise the runtime MAY allow any registered
+  model. Deployment policy decides which default applies.
+
+### 9.8. Provisioned Credentials
+
+**Feature flag:** `provisioned_credentials`.
+
+The runtime MAY provision short-lived credentials to upstream
+cost-bearing services (LLM gateways, search APIs, paid SaaS) on
+behalf of a job, with each credential pre-constrained to match the
+job's lease. The credential becomes the enforcement boundary at
+the upstream, replacing reliance on agent self-reporting for
+`cost.budget`, `model.use`, and similar capabilities.
+
+The mechanism is vendor-neutral: any upstream that can mint a
+scoped credential — LiteLLM virtual keys, vendor-issued sub-keys,
+short-lived OAuth tokens, signed URLs — is a valid backend. The
+wire shape below is uniform across vendors; vendor-specific
+provisioning is a runtime concern not visible on the wire.
+
+#### 9.8.1. Wire Shape
+
+When advertised, `job.accepted.payload.credentials` is an array of
+credential objects:
+
+```json
+{
+  "id": "cred_01J...",
+  "scheme": "bearer",
+  "value": "sk-virt-...",
+  "endpoint": "https://gateway.example.com/v1",
+  "profile": "openai",
+  "constraints": {
+    "cost.budget": ["USD:5.00"],
+    "model.use":   ["tier-fast/*"],
+    "expires_at":  "2026-05-13T23:42:00Z"
+  }
+}
+```
+
+Fields:
+
+- `id` (REQUIRED): Stable identifier for the credential within
+  the job. Used for audit, rotation, and revocation correlation.
+- `scheme` (REQUIRED): Authentication scheme. `bearer` is the
+  only scheme defined by this specification. Implementations MAY
+  define others (e.g., `basic`, `signed_url`); unknown schemes
+  MUST be ignored by clients that do not recognize them.
+- `value` (REQUIRED): The credential material. Treat as a secret.
+- `endpoint` (REQUIRED): The base URL at which the credential is
+  valid. Agents MUST NOT present the credential to other URLs.
+- `profile` (OPTIONAL): Vendor-neutral hint identifying the API
+  protocol the agent should speak at `endpoint` (e.g., `openai`,
+  `anthropic`, `generic`). Advisory only; the protocol does not
+  define a registry.
+- `constraints` (OPTIONAL): A read-only echo of the lease
+  restrictions baked into the credential at the upstream.
+  Informational; the upstream is the enforcer.
+
+#### 9.8.2. Lifecycle
+
+- The runtime MUST issue credentials no later than
+  `job.accepted` and MUST surface them only over the
+  authenticated ARCP transport.
+- Credentials are scoped to a single job. The runtime MUST NOT
+  reuse a credential `value` across jobs.
+- The runtime MUST revoke each credential at the upstream when
+  the job reaches a terminal state (`success`, `error`,
+  `cancelled`, `timed_out`), regardless of how termination
+  occurred. Revocation is best-effort; the runtime SHOULD retry
+  on transient failure and MUST log permanent failures.
+- The runtime MAY rotate or re-issue a credential mid-job (e.g.,
+  to refresh a short-lived token). On rotation it MUST emit a
+  `status` event with `phase: "credential_rotated"` whose body
+  carries the credential `id` and the new `value`; the prior
+  `value` MUST be revoked promptly.
+- Delegated jobs (§10) MAY receive child credentials. Child
+  credentials MUST be constrained at or below the child's lease,
+  and the child's lease MUST be a subset of the parent's (§9.4).
+  A child credential's lifetime is bounded by the child job;
+  parent termination MUST NOT leave child credentials live.
+- The submitting client SHOULD treat `value` as ephemeral and
+  MUST NOT cache it beyond the observed lifetime of the job.
+
+#### 9.8.3. Constraint Mapping
+
+A runtime that issues a credential SHOULD bake into it every
+lease capability the upstream is capable of enforcing. At
+minimum:
+
+- `cost.budget` SHOULD map to the upstream's per-credential
+  spend cap, sized to the job's remaining budget.
+- `model.use` SHOULD map to the upstream's allowed-model list.
+- `lease_constraints.expires_at` SHOULD map to the upstream's
+  credential TTL.
+
+Lease capabilities the upstream cannot represent remain enforced
+by the runtime in the normal way (§9.3). The `constraints` field
+on the credential reflects only what the upstream actually
+enforces; clients MUST NOT infer that absence of a constraint in
+that field implies the lease lacks it.
+
 ---
 
 ## 10. Delegation
@@ -949,17 +1117,10 @@ naive retry will fail identically.
 A client and runtime that have negotiated `heartbeat` and a 30s
 interval, during a quiet period:
 
-```
-*** 30s elapse with no traffic ***
-
-C → R:  session.ping     { nonce: "p1", sent_at: "...:43:00Z" }
-R → C:  session.pong     { ping_nonce: "p1", received_at: "...:43:00.020Z" }
-
-*** another 30s elapse ***
-
-R → C:  session.ping     { nonce: "p2", sent_at: "...:43:30Z" }
-C → R:  session.pong     { ping_nonce: "p2", received_at: "...:43:30.015Z" }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-heartbeat-liveness-dark.svg">
+  <img alt="Heartbeat liveness sequence" src="diagrams/seq-heartbeat-liveness-light.svg">
+</picture>
 
 If the client had failed to respond to `session.ping p2` within
 30s, the runtime would close the transport and surface
@@ -970,20 +1131,10 @@ can resume within the resume window.
 
 A client falling behind on a chatty job:
 
-```
-C → R:  job.submit          { agent: "log-tail", ... }
-R → C:  job.accepted        { job_id: job_LT }
-R → C:  job.event[seq=1..100]   (rapid burst)
-C → R:  session.ack         { last_processed_seq: 12 }   ← client is at 12
-R → C:  job.event[seq=101..200]
-C → R:  session.ack         { last_processed_seq: 28 }   ← still falling behind
-R → C:  job.event[seq=201..300]
-                                                          ← runtime detects
-                                                            lag > threshold
-R → C:  job.event[seq=301]  { kind: "status",
-                              body: { phase: "back_pressure",
-                                       message: "consumer lag 270 events" } }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-event-ack-backpressure-dark.svg">
+  <img alt="Event acknowledgement and slow consumer sequence" src="diagrams/seq-event-ack-backpressure-light.svg">
+</picture>
 
 The runtime's response to lag is implementation-defined. Common
 strategies: emit a `back_pressure` status, throttle the agent
@@ -994,23 +1145,10 @@ strategies: emit a `back_pressure` status, throttle the agent
 
 A new dashboard session attaches to a job started elsewhere:
 
-```
-C2 → R:  session.hello     { ... }     (different client, same principal)
-R  → C2: session.welcome   { session_id: sess_B2, ... }
-
-C2 → R:  session.list_jobs { filter: { status: ["running"] } }
-R  → C2: session.jobs      { jobs: [ { job_id: job_R1, agent: "web-research@1.0.0",
-                                       last_event_seq: 84, ... } ] }
-
-C2 → R:  job.subscribe     { job_id: job_R1, history: true, from_event_seq: 0 }
-R  → C2: job.subscribed    { job_id: job_R1, current_status: "running",
-                              subscribed_from: 84, replayed: true }
-R  → C2: job.event[seq=1..84]    (replayed, with original timestamps preserved
-                                   in body.ts but session-scoped seq applies)
-R  → C2: job.event[seq=85..]     (live, continuing)
-...
-R  → C2: job.result[seq=N]       (when job completes)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-job-list-subscribe-dark.svg">
+  <img alt="Job listing and subscription sequence" src="diagrams/seq-job-list-subscribe-light.svg">
+</picture>
 
 The original submitting session (`sess_A1`) and the dashboard
 session (`sess_B2`) both observe `job_R1`'s events live. Only
@@ -1021,31 +1159,10 @@ keeps running and `sess_B2` keeps observing without interruption.
 
 A long-running job whose lease expires before completion:
 
-```
-C → R:  job.submit         { agent: "indexer",
-                              lease_request: {
-                                fs.read:  ["/data/**"],
-                                fs.write: ["/index/**"] },
-                              lease_constraints: {
-                                expires_at: "2026-05-13T20:00:00Z" } }
-R → C:  job.accepted       { job_id: job_IX,
-                              lease_constraints: { expires_at: "...20:00:00Z" } }
-
-R → C:  job.event[seq=N]   { kind: "progress",
-                              body: { current: 42000, total: 100000,
-                                       units: "files" } }
-
-*** 20:00:00 UTC arrives; job is still running ***
-
-R → C:  job.event[seq=N+1] { kind: "tool_result",
-                              body: { call_id: c_42001,
-                                       error: { code: "LEASE_EXPIRED",
-                                                message: "Lease expired at 20:00:00Z",
-                                                retryable: false } } }
-R → C:  job.error[seq=N+2] { final_status: "error",
-                              code: "LEASE_EXPIRED",
-                              message: "Lease expired during execution" }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-lease-expiration-dark.svg">
+  <img alt="Lease expiration sequence" src="diagrams/seq-lease-expiration-light.svg">
+</picture>
 
 The agent receives the lease-expiration error as a `tool_result`
 on its next authority-bearing operation, gracefully unwinds, and
@@ -1057,39 +1174,10 @@ lease.
 
 A research job with a $1.00 budget:
 
-```
-C → R:  job.submit       { agent: "web-research",
-                            lease_request: {
-                              tool.call:   ["search.*", "fetch.*"],
-                              cost.budget: ["USD:1.00"] } }
-R → C:  job.accepted     { job_id: job_WR, budget: { USD: 1.00 } }
-
-R → C:  job.event[seq=1] { kind: "tool_call",
-                            body: { tool: "search.web", call_id: c1, args: ... } }
-R → C:  job.event[seq=2] { kind: "tool_result", body: { call_id: c1, result: ... } }
-R → C:  job.event[seq=3] { kind: "metric",
-                            body: { name: "cost.search", value: 0.42, unit: "USD" } }
-R → C:  job.event[seq=4] { kind: "metric",
-                            body: { name: "cost.budget.remaining",
-                                     value: 0.58, unit: "USD" } }
-
-R → C:  job.event[seq=5] { kind: "tool_call",
-                            body: { tool: "fetch.url", call_id: c2, args: ... } }
-R → C:  job.event[seq=6] { kind: "tool_result", body: { call_id: c2, result: ... } }
-R → C:  job.event[seq=7] { kind: "metric",
-                            body: { name: "cost.fetch", value: 0.70, unit: "USD" } }
-R → C:  job.event[seq=8] { kind: "metric",
-                            body: { name: "cost.budget.remaining",
-                                     value: -0.12, unit: "USD" } }
-
-R → C:  job.event[seq=9] { kind: "tool_call",
-                            body: { tool: "fetch.url", call_id: c3, args: ... } }
-R → C:  job.event[seq=10] { kind: "tool_result",
-                            body: { call_id: c3,
-                                     error: { code: "BUDGET_EXHAUSTED",
-                                              message: "USD budget exhausted",
-                                              retryable: false } } }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-budget-enforcement-dark.svg">
+  <img alt="Budget enforcement sequence" src="diagrams/seq-budget-enforcement-light.svg">
+</picture>
 
 The agent sees the `BUDGET_EXHAUSTED` error on `c3` and decides
 how to proceed — typically by emitting a partial result and
@@ -1100,53 +1188,40 @@ does not predict cost before a tool call.
 
 A report-generation job streaming a 30 MB final report:
 
-```
-R → C:  job.event[seq=1..40]      (intermediate work events)
-R → C:  job.event[seq=41]  { kind: "result_chunk",
-                              body: { result_id: "res_RP1",
-                                       chunk_seq: 0,
-                                       data: "...first 1 MB...",
-                                       encoding: "utf8",
-                                       more: true } }
-R → C:  job.event[seq=42..70]  (more chunks)
-R → C:  job.event[seq=71]  { kind: "result_chunk",
-                              body: { result_id: "res_RP1",
-                                       chunk_seq: 30,
-                                       data: "...final chunk...",
-                                       encoding: "utf8",
-                                       more: false } }
-R → C:  job.result[seq=72] { final_status: "success",
-                              result_id: "res_RP1",
-                              result_size: 31_457_280,
-                              summary: "Report generated, 31 MB, 31 chunks." }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-streamed-result-dark.svg">
+  <img alt="Streamed result sequence" src="diagrams/seq-streamed-result-light.svg">
+</picture>
 
 The client accumulates chunks by `result_id` and assembles the
 final result. Backpressure via `session.ack` (§6.5) is
 particularly important during chunked result emission.
 
-### 13.7. Agent Versioning
+### 13.7. Provisioned Credential
+
+A job that calls an LLM gateway via a runtime-provisioned virtual
+key:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-provisioned-credential-dark.svg">
+  <img alt="Provisioned credential sequence" src="diagrams/seq-provisioned-credential-light.svg">
+</picture>
+
+If the gateway returns a budget-exhausted error to the agent, the
+runtime translates it to `BUDGET_EXHAUSTED` at the ARCP boundary
+(§9.6). If the agent attempts a model outside `tier-fast/*`, the
+gateway rejects the request and the runtime surfaces
+`PERMISSION_DENIED` to the agent's next operation.
+
+### 13.8. Agent Versioning
 
 A client pinning a specific agent version after seeing the
 inventory:
 
-```
-C → R:  session.hello
-R → C:  session.welcome  { capabilities: { agents: [
-          { name: "code-refactor",
-            versions: ["1.0.0", "2.0.0"],
-            default: "2.0.0" } ] } }
-
-C → R:  job.submit       { agent: "code-refactor@1.0.0", ... }
-R → C:  job.accepted     { job_id: job_CR }
-
-(... later, attempting an unavailable version ...)
-
-C → R:  job.submit       { agent: "code-refactor@3.0.0", ... }
-R → C:  session.error    { code: "AGENT_VERSION_NOT_AVAILABLE",
-                            message: "code-refactor@3.0.0 not registered",
-                            retryable: false }
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/seq-agent-versioning-dark.svg">
+  <img alt="Agent versioning sequence" src="diagrams/seq-agent-versioning-light.svg">
+</picture>
 
 ---
 
@@ -1170,7 +1245,33 @@ malicious or buggy agent that fails to report costs effectively
 operates without a budget. Runtimes that need strong budget
 enforcement MUST also instrument cost at the tool-server or
 LLM-gateway layer rather than relying solely on agent-reported
-metrics.
+metrics. Provisioned credentials (§9.8) are the protocol's
+intended mechanism for moving enforcement to the upstream: a
+credential scoped to the job's budget and model tier turns the
+upstream into the authoritative counter, so an agent that omits
+`metric` events still cannot exceed its lease.
+
+**Credential confidentiality.** Provisioned credentials (§9.8)
+embed real spending authority. Runtimes MUST issue them over
+authenticated, encrypted transports only and MUST scope each
+credential to a single job. Clients MUST treat `value` as a
+secret: not logged, not echoed to subscribers, not persisted
+beyond the job. Subscribers (§7.6) MUST NOT receive
+`credentials` from `job.accepted` they did not submit; runtimes
+MUST redact the field from any introspection surface (e.g.,
+`session.list_jobs`) presented to a principal that is not the
+job's submitter. Compromise of a credential at the agent
+boundary is bounded by the lease's `cost.budget` and
+`expires_at`; this bound is the entire point and SHOULD be
+sized accordingly.
+
+**Credential revocation reliability.** Failure to revoke a
+credential at upstream after job termination leaves spending
+authority dangling. Runtimes MUST treat revocation as a
+durability concern: persist outstanding credential IDs, retry
+revocation across runtime restarts, and surface unrevocable
+credentials to operators. A runtime that cannot guarantee
+revocation MUST NOT advertise `provisioned_credentials`.
 
 **Result chunk size.** Unbounded chunk sizes expose memory
 exhaustion on both ends. Runtimes SHOULD cap individual chunk
@@ -1204,6 +1305,11 @@ The following items are proposed for future registration:
   `AGENT_VERSION_NOT_AVAILABLE`.
 - The feature flag namespace used in `session.hello` and
   `session.welcome` capability negotiation.
+- The `model.use` capability namespace.
+- The `provisioned_credentials` feature flag, the `credentials`
+  field of `job.accepted`, and the credential `scheme` registry
+  (initial entry: `bearer`).
+- The `status` event `phase` value `credential_rotated`.
 
 ---
 

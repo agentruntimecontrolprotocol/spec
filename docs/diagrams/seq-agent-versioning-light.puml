@@ -1,0 +1,16 @@
+@startuml
+!include _theme-light.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+C -[$client_arrow]>  R : session.hello
+R -[$reply_arrow]-> C : session.welcome\n{ capabilities: { agents: [\n    { name: "code-refactor",\n      versions: ["1.0.0", "2.0.0"],\n      default: "2.0.0" } ] } }
+
+C -[$client_arrow]>  R : job.submit\n{ agent: "code-refactor@1.0.0", ... }
+R -[$reply_arrow]-> C : job.accepted\n{ job_id: job_CR }
+
+== later — attempting an unavailable version ==
+
+C -[$client_arrow]>  R : job.submit\n{ agent: "code-refactor@3.0.0", ... }
+R -[$error_arrow]-> C : <color:$error_text>session.error</color>\n{ code: "AGENT_VERSION_NOT_AVAILABLE",\n  message: "code-refactor@3.0.0 not registered",\n  retryable: false }
+@enduml

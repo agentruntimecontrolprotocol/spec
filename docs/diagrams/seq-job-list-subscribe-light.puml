@@ -1,0 +1,23 @@
+@startuml
+!include _theme-light.puml
+participant "<color:white>Client C2</color>" as C2 $peer_color
+participant "Router R" as R
+
+C2 -[$client_arrow]>  R  : session.hello
+R  -[$reply_arrow]-> C2 : session.welcome\n{ session_id: sess_B2 }
+
+C2 -[$client_arrow]>  R  : session.list_jobs\n{ status: ["running"] }
+R  -[$reply_arrow]-> C2 : session.jobs\n{ job_R1, last_event_seq: 84 }
+
+C2 -[$client_arrow]>  R  : job.subscribe\n{ history: true, from_event_seq: 0 }
+R  -[$reply_arrow]-> C2 : job.subscribed\n{ subscribed_from: 84, replayed: true }
+
+group replay (body.ts preserved, session-scoped seq)
+  R -[$muted_arrow]-> C2 : job.event [seq=1..84]
+end
+
+== live ==
+
+R -[$reply_arrow]-> C2 : job.event [seq=85..]
+R -[$accent_arrow]-> C2 : <color:$accent_text>job.result</color> [seq=N]
+@enduml

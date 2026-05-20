@@ -1,0 +1,27 @@
+@startuml
+!include _theme-light.puml
+participant "<color:white>Client C</color>" as C $client_color
+participant "Router R" as R
+
+C -[$client_arrow]>  R : job.submit\n{ agent: "web-research",\n  lease_request: { tool.call: ["search.*", "fetch.*"],\n                   cost.budget: ["USD:1.00"] } }
+R -[$reply_arrow]-> C : job.accepted\n{ job_id: job_WR, budget: { USD: 1.00 } }
+
+group call 1 — search ($0.42)
+  R -[$reply_arrow]-> C : job.event [seq=1] tool_call search.web c1
+  R -[$reply_arrow]-> C : job.event [seq=2] tool_result c1
+  R -[$reply_arrow]-> C : job.event [seq=3] metric cost.search 0.42 USD
+  R -[$reply_arrow]-> C : job.event [seq=4] metric cost.budget.remaining 0.58 USD
+end
+
+group call 2 — fetch ($0.70 → over budget)
+  R -[$reply_arrow]-> C : job.event [seq=5] tool_call fetch.url c2
+  R -[$reply_arrow]-> C : job.event [seq=6] tool_result c2
+  R -[$reply_arrow]-> C : job.event [seq=7] metric cost.fetch 0.70 USD
+  R -[$reply_arrow]-> C : job.event [seq=8] metric cost.budget.remaining -0.12 USD
+end
+
+group call 3 — rejected
+  R -[$reply_arrow]-> C : job.event [seq=9] tool_call fetch.url c3
+  R -[$error_arrow]-> C : <color:$error_text>job.event [seq=10]</color>\n{ kind: "tool_result",\n  body: { call_id: c3,\n          error: { code: "BUDGET_EXHAUSTED",\n                   message: "USD budget exhausted",\n                   retryable: false } } }
+end
+@enduml
