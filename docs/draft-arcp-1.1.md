@@ -1,179 +1,12 @@
-<style>
-:root {
-  --arcp-fg: #1f2328;
-  --arcp-muted: #57606a;
-  --arcp-border: #d0d7de;
-  --arcp-bg-soft: #f6f8fa;
-  --arcp-accent: #0969da;
-  --arcp-accent-soft: #ddf4ff;
-  --arcp-warn:rgb(245, 236, 165);
-  --arcp-warn-soft:rgb(255, 242, 197);
-  --arcp-danger: #cf222e;
-  --arcp-danger-soft: #ffebe9;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --arcp-fg: #e6edf3;
-    --arcp-muted:rgb(109, 112, 117);
-    --arcp-border: #30363d;
-    --arcp-bg-soft: #161b22;
-    --arcp-accent: #58a6ff;
-    --arcp-accent-soft: #0c2d6b;
-    --arcp-warn:rgb(245, 236, 165);
-    --arcp-warn-soft:rgb(255, 242, 197);
-    --arcp-danger: #f85149;
-    --arcp-danger-soft: #3c1618;
-  }
-}
-
-.arcp-header {
-  border: 1px solid var(--arcp-border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin: 1rem 0 1.5rem;
-  background: var(--arcp-bg-soft);
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--arcp-fg);
-}
-.arcp-header table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0;
-}
-.arcp-header td {
-  border: 0;
-  padding: 0.1rem 0;
-  vertical-align: top;
-}
-.arcp-header td:first-child {
-  color: var(--arcp-muted);
-  width: 14rem;
-  padding-right: 1rem;
-}
-.arcp-title {
-  text-align: center;
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin: 0.75rem 0 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--arcp-border);
-}
-
-.arcp-callout {
-  border-left: 4px solid var(--arcp-accent);
-  background: var(--arcp-accent-soft);
-  padding: 0.75rem 1rem;
-  margin: 1rem 0;
-  border-radius: 0 6px 6px 0;
-}
-.arcp-callout--warn {
-  border-left-color: var(--arcp-warn);
-  background: var(--arcp-warn-soft);
-  color: #000
-}
-.arcp-callout--note {
-  border-left-color: var(--arcp-muted);
-  background: var(--arcp-bg-soft);
-}
-.arcp-callout > .arcp-callout-title {
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  color: var(--arcp-muted);
-}
-
-.arcp-badge {
-  display: inline-block;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background: var(--arcp-accent-soft);
-  color: var(--arcp-accent);
-  border: 1px solid var(--arcp-border);
-  font-weight: 600;
-  vertical-align: middle;
-  letter-spacing: 0.02em;
-}
-.arcp-feature {
-  margin: 0.5rem 0 1rem;
-  font-size: 0.9rem;
-  color: var(--arcp-muted);
-}
-
-dl.arcp-terms {
-  margin: 0;
-  padding: 0;
-}
-dl.arcp-terms > dt {
-  font-weight: 600;
-  margin-top: 0.75rem;
-  color: var(--arcp-fg);
-}
-dl.arcp-terms > dd {
-  margin: 0.15rem 0 0 0;
-  color: var(--arcp-fg);
-}
-
-.toc ol {
-  list-style: none;
-  padding-left: 1.25rem;
-}
-.toc > li {
-  margin: 0.15rem 0;
-}
-.toc li::marker {
-  content: counters(list-item, ".") ". ";
-  color: var(--arcp-muted);
-  font-variant-numeric: tabular-nums;
-}
-.toc a {
-  text-decoration: none;
-}
-.toc a:hover {
-  text-decoration: underline;
-}
-
-.arcp-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1rem 0;
-  font-size: 0.9rem;
-}
-.arcp-table th,
-.arcp-table td {
-  border: 1px solid var(--arcp-border);
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  vertical-align: top;
-}
-.arcp-table thead th {
-  background: var(--arcp-bg-soft);
-  font-weight: 600;
-}
-.arcp-table tbody tr:nth-child(2n) {
-  background: var(--arcp-bg-soft);
-}
-.arcp-table code {
-  white-space: nowrap;
-}
-</style>
-
 # ARCP: Agent Runtime Control Protocol
 
-<div class="arcp-header">
-  <table>
-    <tr><td>Internet-Draft</td><td>Nick Ficano</td></tr>
-    <tr><td>Intended status</td><td>Standards Track</td></tr>
-    <tr><td>Expires</td><td>November 13, 2026</td></tr>
-    <tr><td>Date</td><td>May 13, 2026</td></tr>
-  </table>
-  <div class="arcp-title">Agent Runtime Control Protocol (ARCP) — Version 1.1</div>
-</div>
+```
+Internet-Draft                                              Nick Ficano
+Intended status: Standards Track                                   ARCP
+Expires: November 13, 2026                                 May 13, 2026
+```
+
+**Agent Runtime Control Protocol (ARCP) — Version 1.1**
 
 ## Status of This Memo
 
@@ -192,7 +25,7 @@ acknowledgement and flow control, job introspection, cross-session job
 subscription, agent versioning, time-bounded leases, budget
 enforcement, lease-bound provisioned credentials, structured progress
 reporting, and streamed results — all within the four concerns of
-**identity**, **durability**, **authority**, and **observability**.
+identity, durability, authority, and observability.
 
 ## Deferred
 
@@ -205,65 +38,47 @@ The following are out of scope for this version:
 
 ## Table of Contents
 
-<ol class="toc">
-  <li><a href="#1-introduction">Introduction</a></li>
-  <li><a href="#2-conventions">Conventions</a></li>
-  <li><a href="#3-protocol-overview">Protocol Overview</a></li>
-  <li><a href="#4-transport">Transport</a></li>
-  <li><a href="#5-wire-format">Wire Format</a></li>
-  <li>
-    <a href="#6-sessions">Sessions</a>
-    <ol>
-      <li><a href="#61-authentication">Authentication</a></li>
-      <li><a href="#62-hello--welcome">Hello / Welcome</a></li>
-      <li><a href="#63-resume">Resume</a></li>
-      <li><a href="#64-heartbeats">Heartbeats</a></li>
-      <li><a href="#65-event-acknowledgement">Event Acknowledgement</a></li>
-      <li><a href="#66-job-listing">Job Listing</a></li>
-      <li><a href="#67-close">Close</a></li>
-    </ol>
-  </li>
-  <li>
-    <a href="#7-jobs">Jobs</a>
-    <ol>
-      <li><a href="#71-submission-and-acceptance">Submission and Acceptance</a></li>
-      <li><a href="#72-idempotency">Idempotency</a></li>
-      <li><a href="#73-lifecycle">Lifecycle</a></li>
-      <li><a href="#74-cancellation">Cancellation</a></li>
-      <li><a href="#75-agent-versioning">Agent Versioning</a></li>
-      <li><a href="#76-subscription">Subscription</a></li>
-    </ol>
-  </li>
-  <li>
-    <a href="#8-job-events">Job Events</a>
-    <ol>
-      <li><a href="#81-event-envelope">Event Envelope</a></li>
-      <li><a href="#82-event-kinds">Event Kinds</a></li>
-      <li><a href="#83-ordering-and-sequence-numbers">Ordering and Sequence Numbers</a></li>
-      <li><a href="#84-result-streaming">Result Streaming</a></li>
-    </ol>
-  </li>
-  <li>
-    <a href="#9-leases">Leases</a>
-    <ol>
-      <li><a href="#91-capability-model">Capability Model</a></li>
-      <li><a href="#92-lease-grammar">Lease Grammar</a></li>
-      <li><a href="#93-enforcement">Enforcement</a></li>
-      <li><a href="#94-lease-subsetting">Lease Subsetting</a></li>
-      <li><a href="#95-lease-expiration">Lease Expiration</a></li>
-      <li><a href="#96-budget-capability">Budget Capability</a></li>
-      <li><a href="#97-model-capability">Model Capability</a></li>
-      <li><a href="#98-provisioned-credentials">Provisioned Credentials</a></li>
-    </ol>
-  </li>
-  <li><a href="#10-delegation">Delegation</a></li>
-  <li><a href="#11-trace-propagation">Trace Propagation</a></li>
-  <li><a href="#12-error-taxonomy">Error Taxonomy</a></li>
-  <li><a href="#13-examples">Examples</a></li>
-  <li><a href="#14-security-considerations">Security Considerations</a></li>
-  <li><a href="#15-iana-considerations">IANA Considerations</a></li>
-  <li><a href="#16-references">References</a></li>
-</ol>
+1. Introduction
+2. Conventions
+3. Protocol Overview
+4. Transport
+5. Wire Format
+6. Sessions
+   6.1. Authentication
+   6.2. Hello / Welcome
+   6.3. Resume
+   6.4. Heartbeats
+   6.5. Event Acknowledgement
+   6.6. Job Listing
+   6.7. Close
+7. Jobs
+   7.1. Submission and Acceptance
+   7.2. Idempotency
+   7.3. Lifecycle
+   7.4. Cancellation
+   7.5. Agent Versioning
+   7.6. Subscription
+8. Job Events
+   8.1. Event Envelope
+   8.2. Event Kinds
+   8.3. Ordering and Sequence Numbers
+   8.4. Result Streaming
+9. Leases
+   9.1. Capability Model
+   9.2. Lease Grammar
+   9.3. Enforcement
+   9.4. Lease Subsetting
+   9.5. Lease Expiration
+   9.6. Budget Capability
+   9.7. Model Capability
+   9.8. Provisioned Credentials
+10. Delegation
+11. Trace Propagation
+12. Error Taxonomy
+13. Examples
+14. Security Considerations
+15. IANA Considerations
+16. References
 
 ---
 
@@ -312,18 +127,14 @@ document are to be interpreted as described in [RFC2119] and
 
 ### 2.2. Terminology
 
-<dl class="arcp-terms">
-  <dt>Budget counter</dt>
-  <dd>A runtime-maintained accumulator associated with a
-  <code>cost.budget</code> capability that decrements as
-  cost-bearing metrics are reported.</dd>
-  <dt>Subscriber</dt>
-  <dd>A client that has attached to an existing job via
-  <code>job.subscribe</code> rather than submitting it.</dd>
-  <dt>Heartbeat interval</dt>
-  <dd>The period (in seconds) within which each peer SHOULD send at
-  least one message, or a <code>session.ping</code> if idle.</dd>
-</dl>
+- **Budget counter**: A runtime-maintained accumulator associated
+  with a `cost.budget` capability that decrements as cost-bearing
+  metrics are reported.
+- **Subscriber**: A client that has attached to an existing job via
+  `job.subscribe` rather than submitting it.
+- **Heartbeat interval**: The period (in seconds) within which each
+  peer SHOULD send at least one message, or a `session.ping` if
+  idle.
 
 ---
 
@@ -472,7 +283,7 @@ is returned if the buffer no longer covers the requested
 
 ### 6.4. Heartbeats
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">heartbeat</span></p>
+**Feature flag:** `heartbeat`.
 
 When negotiated, both peers SHOULD ensure at least one message
 flows in each direction per `heartbeat_interval_sec`. An idle peer
@@ -514,7 +325,7 @@ control messages, not job events.
 
 ### 6.5. Event Acknowledgement
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">ack</span></p>
+**Feature flag:** `ack`.
 
 The client MAY periodically inform the runtime of its highest
 processed event sequence:
@@ -549,7 +360,7 @@ not assume an unacknowledged event is unreceived.
 
 ### 6.6. Job Listing
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">list_jobs</span></p>
+**Feature flag:** `list_jobs`.
 
 A client MAY request a read-only inventory of jobs accessible in
 the current session:
@@ -705,7 +516,7 @@ emits `job.error` with code `CANCELLED` and `final_status:
 
 ### 7.5. Agent Versioning
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">agent_versions</span></p>
+**Feature flag:** `agent_versions`.
 
 The `agent` field of `job.submit.payload` MAY include a version
 suffix:
@@ -735,7 +546,7 @@ different version.
 
 ### 7.6. Subscription
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">subscribe</span></p>
+**Feature flag:** `subscribe`.
 
 A client MAY attach to a job that was submitted in a different
 session or earlier in the same session, receiving the live event
@@ -881,7 +692,7 @@ attempt resume.
 
 ### 8.4. Result Streaming
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">result_chunk</span></p>
+**Feature flag:** `result_chunk`.
 
 For jobs that produce large final results, the agent MAY stream
 the result as a sequence of `result_chunk` events terminated by a
@@ -1002,7 +813,7 @@ with `LEASE_SUBSET_VIOLATION`.
 
 ### 9.5. Lease Expiration
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">lease_expires_at</span></p>
+**Feature flag:** `lease_expires_at`.
 
 A job's lease MAY carry an `expires_at` timestamp via
 `lease_constraints`:
@@ -1035,7 +846,7 @@ client MUST cancel and resubmit.
 
 ### 9.6. Budget Capability
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">cost.budget</span></p>
+**Feature flag:** `cost.budget`.
 
 The `cost.budget` capability declares an upper bound on cumulative
 cost for the job. Patterns are amount strings of the form:
@@ -1118,7 +929,7 @@ telemetry regardless of which layer is enforcing.
 
 ### 9.7. Model Capability
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">model.use</span></p>
+**Feature flag:** `model.use`.
 
 The `model.use` capability declares the set of LLM models the
 agent is authorized to invoke. Patterns are model-name globs
@@ -1151,7 +962,7 @@ Enforcement:
 
 ### 9.8. Provisioned Credentials
 
-<p class="arcp-feature">Feature flag: <span class="arcp-badge">provisioned_credentials</span></p>
+**Feature flag:** `provisioned_credentials`.
 
 The runtime MAY provision short-lived credentials to upstream
 cost-bearing services (LLM gateways, search APIs, paid SaaS) on
@@ -1538,13 +1349,11 @@ The following items are proposed for future registration:
 
 ## Authors' Addresses
 
-<div class="arcp-header">
-  <table>
-    <tr><td>Author</td><td>Nick Ficano</td></tr>
-    <tr><td>Email</td><td><a href="mailto:nficano@gmail.com">nficano@gmail.com</a></td></tr>
-  </table>
-</div>
+```
+Nick Ficano
+Email: nficano@gmail.com
+```
 
 ---
 
-<p style="text-align:center; color: var(--arcp-muted); font-style: italic;">End of draft specification.</p>
+_End of draft specification._
