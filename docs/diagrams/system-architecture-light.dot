@@ -1,39 +1,40 @@
 // ARCP system architecture (light)
-// Runtime Host hosts ARCP + Agent Processes (acting as MCP clients) + MCP servers.
-// ARCP Client (CLI/IDE/dashboard) connects to the Runtime Host via ARCP.
+// Style harmonized with the PlantUML sequence diagrams: TT Commons Pro
+// Trial for all text, shared slate/blue palette.
 digraph SystemArchitecture {
-  rankdir=TB; bgcolor="transparent"; compound=true; fontname="Helvetica";
-  splines=ortho; nodesep=0.32; ranksep=0.55; pad="0.35,0.25";
+  rankdir=TB; bgcolor="transparent"; compound=true;
+  fontname="TT Commons Pro Trial";
+  splines=spline; nodesep=0.32; ranksep=0.55; pad="0.35,0.25";
 
   node [shape=box, style="rounded,filled", fillcolor="white", color="#CBD5E1",
-        fontname="Helvetica", fontsize=11, fontcolor="#1F2937",
-        margin="0.22,0.11", penwidth=1.0];
-  edge [fontname="Helvetica", fontsize=9, fontcolor="#64748B", color="#94A3B8",
-        penwidth=1.1, arrowsize=0.75, arrowhead=vee];
+        fontname="TT Commons Pro Trial", fontsize=13, fontcolor="#1F2937",
+        margin="0.24,0.13", penwidth=1.0];
+  edge [fontname="TT Commons Pro Trial", fontsize=12, fontcolor="#475569",
+        color="#94A3B8", penwidth=1.1, arrowsize=0.75, arrowhead=vee];
 
   Client [
-    label=<<FONT POINT-SIZE="12"><B>ARCP Client</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#94A3B8">CLI, IDE, dashboard</FONT>>,
+    label=<<FONT POINT-SIZE="14">ARCP Client</FONT><BR/><FONT POINT-SIZE="11" COLOR="#DBEAFE">CLI · IDE · dashboard</FONT>>,
     fillcolor="#3B82F6", color="#2563EB", fontcolor="white", penwidth=1.4
   ];
 
   subgraph cluster_host {
-    label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD COLSPAN="3" HEIGHT="8"></TD></TR><TR><TD WIDTH="8"></TD><TD><FONT POINT-SIZE="12"><B>Runtime Host</B></FONT></TD><TD WIDTH="8"></TD></TR></TABLE>>;
+    label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD COLSPAN="3" HEIGHT="8"></TD></TR><TR><TD WIDTH="8"></TD><TD><FONT POINT-SIZE="13">Runtime Host</FONT></TD><TD WIDTH="8"></TD></TR></TABLE>>;
     style="rounded,filled";
-    fillcolor="#F1F5F9"; color="#E2E8F0";
-    fontname="Helvetica"; fontcolor="#475569";
+    fillcolor="#F8FAFC"; color="#CBD5E1";
+    fontname="TT Commons Pro Trial"; fontcolor="#1F2937";
     margin=14; labeljust=l; penwidth=1.0;
 
     Arcp [
-      label=<<FONT POINT-SIZE="12"><B>ARCP</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="white">jobs · leases · delegation</FONT>>,
-      fillcolor="#F59E0B", color="#D97706", fontcolor="white", penwidth=1.4
+      label=<<FONT POINT-SIZE="14">ARCP</FONT><BR/><FONT POINT-SIZE="11" COLOR="#FEF3C7">jobs · leases · delegation</FONT>>,
+      fillcolor="#D97706", color="#B45309", fontcolor="white", penwidth=1.4
     ];
 
-    Agents [label=<<FONT POINT-SIZE="11">Agent Processes</FONT><BR/><FONT POINT-SIZE="9" COLOR="#94A3B8">as MCP clients</FONT>>];
+    Agents [label=<<FONT POINT-SIZE="13">Agent Processes</FONT><BR/><FONT POINT-SIZE="11" COLOR="#64748B">as MCP clients</FONT>>];
 
-    Mcp [label=<<FONT POINT-SIZE="11">MCP servers</FONT><BR/><FONT POINT-SIZE="9" COLOR="#94A3B8">tools · HITL · integrations</FONT>>];
+    Mcp [label=<<FONT POINT-SIZE="13">MCP servers</FONT><BR/><FONT POINT-SIZE="11" COLOR="#64748B">tools · HITL · integrations</FONT>>];
   }
 
-  edge [color="#64748B", penwidth=1.2];
+  edge [color="#2563EB", penwidth=1.2, fontcolor="#475569"];
   Client -> Arcp [label="ARCP", lhead=cluster_host];
 
   edge [color="#CBD5E1", penwidth=1.0];

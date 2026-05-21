@@ -1,7 +1,7 @@
 ' Shared dark-theme skinparams for ARCP sequence diagrams.
 scale 1.1
 skinparam backgroundColor transparent
-skinparam defaultFontName TT Commons Pro
+skinparam defaultFontName TT Commons Pro Trial
 skinparam shadowing false
 skinparam roundcorner 4
 
@@ -9,7 +9,7 @@ skinparam sequence {
   ParticipantBorderColor      #475569
   ParticipantBackgroundColor  #1E293B
   ParticipantFontColor        #F1F5F9
-  ParticipantFontName         TT Commons Pro
+  ParticipantFontName         TT Commons Pro Trial
   ParticipantFontSize         13
   ParticipantFontStyle        plain
   ParticipantPadding          16
@@ -30,7 +30,7 @@ skinparam sequence {
   GroupHeaderFontSize         12
   GroupHeaderFontStyle        plain
   GroupBodyBackgroundColor    transparent
-  GroupFontName               TT Commons Pro
+  GroupFontName               TT Commons Pro Trial
 
   DividerBorderColor          #334155
   DividerBackgroundColor      #1E293B
@@ -42,7 +42,7 @@ skinparam sequence {
   NoteBackgroundColor         #1E293B
   NoteFontColor               #F1F5F9
   NoteFontSize                12
-  NoteFontName                TT Commons Pro
+  NoteFontName                TT Commons Pro Trial
 }
 
 ' Palette tokens (dark)

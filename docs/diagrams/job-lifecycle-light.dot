@@ -1,28 +1,39 @@
 // ARCP job lifecycle FSM (light)
+// Style harmonized with the PlantUML sequence diagrams: TT Commons Pro
+// Trial for all text, shared color palette.
 // pending → running → { success | error | cancelled | timed_out }
 digraph JobLifecycle {
-  rankdir=TB; bgcolor="transparent"; compound=true; fontname="Helvetica";
-  splines=ortho; nodesep=0.32; ranksep=0.55; pad="0.35,0.25";
+  rankdir=TB; bgcolor="transparent"; compound=true;
+  fontname="TT Commons Pro Trial";
+  splines=spline; nodesep=0.32; ranksep=0.55; pad="0.35,0.25";
 
-  node [shape=ellipse, style="filled", fillcolor="white", color="#CBD5E1",
-        fontname="Helvetica", fontsize=11, fontcolor="#1F2937", penwidth=1.0];
-  edge [fontname="Helvetica", fontsize=9, fontcolor="#64748B", color="#94A3B8",
-        penwidth=1.1, arrowsize=0.75, arrowhead=vee];
+  node [shape=box, style="rounded,filled", fillcolor="white", color="#CBD5E1",
+        fontname="TT Commons Pro Trial", fontsize=14, fontcolor="#1F2937",
+        margin="0.24,0.13", penwidth=1.0];
+  edge [fontname="TT Commons Pro Trial", fontsize=13, fontcolor="#475569",
+        color="#94A3B8", penwidth=1.1, arrowsize=0.75, arrowhead=vee];
 
-  Pending [label=<<FONT POINT-SIZE="12"><B>pending</B></FONT>>,
+  // Initial state — client palette
+  Pending [label="pending",
            fillcolor="#3B82F6", color="#2563EB", fontcolor="white", penwidth=1.4];
+
+  // Active state — neutral
   Running [label="running"];
 
-  Success   [label=<<FONT POINT-SIZE="12"><B>success</B></FONT>>,
-             fillcolor="#F59E0B", color="#D97706", fontcolor="white", penwidth=1.4];
-  Error     [label="error"];
-  Cancelled [label="cancelled"];
-  TimedOut  [label="timed_out"];
+  // Terminal states — color-coded by outcome (success/error/cancel/timeout)
+  Success   [label="success",
+             fillcolor="#059669", color="#047857", fontcolor="white", penwidth=1.4];
+  Error     [label="error",
+             fillcolor="#FEE2E2", color="#DC2626", fontcolor="#991B1B", penwidth=1.2];
+  Cancelled [label="cancelled",
+             fillcolor="#F1F5F9", color="#94A3B8", fontcolor="#475569"];
+  TimedOut  [label="timed_out",
+             fillcolor="#F1F5F9", color="#94A3B8", fontcolor="#475569"];
 
   Pending -> Running [label="first event"];
 
-  Running -> Success   [label="job.result"];
-  Running -> Error     [label="job.error"];
+  Running -> Success   [label="job.result",   color="#059669", fontcolor="#047857"];
+  Running -> Error     [label="job.error",    color="#DC2626", fontcolor="#991B1B"];
   Running -> Cancelled [label="cancel"];
   Running -> TimedOut  [label="deadline"];
 
