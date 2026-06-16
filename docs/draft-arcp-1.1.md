@@ -582,17 +582,43 @@ The runtime responds:
   "type": "job.subscribed",
   "session_id": "sess_...",
   "payload": {
-    "job_id":          "job_01JABC...",
-    "current_status":  "running",
-    "agent":           "code-refactor@2.0.0",
-    "lease":           { ... },
-    "parent_job_id":   null,
-    "trace_id":        "4bf92f...",
-    "subscribed_from": 1830,
-    "replayed":        false
+    "job_id":           "job_01JABC...",
+    "current_status":   "running",
+    "agent":            "code-refactor@2.0.0",
+    "lease":            { ... },
+    "lease_constraints": { "expires_at": "2026-05-13T23:42:00Z" },
+    "budget":           { "USD": 3.58 },
+    "parent_job_id":    null,
+    "trace_id":         "4bf92f...",
+    "subscribed_from":  1830,
+    "replayed":         false
   }
 }
 ```
+
+The `job.subscribed` payload is the subscriber's **authority
+descriptor** for the job — the same observable, non-secret view a
+runtime presents in `session.list_jobs`, plus the bounds an observer
+needs to render the job's authority surface:
+
+- `lease` — the effective capability grants (§9.1).
+- `lease_constraints` (OPTIONAL) — echoed when present, currently
+  `expires_at` (§9.5). Lets an observer show when the job's authority
+  ends.
+- `budget` (OPTIONAL) — the **current** per-currency counters at
+  subscription time (§9.6), present when `cost.budget` is in the
+  lease. Combined with the cap parsed from the lease's `cost.budget`
+  pattern and subsequent `cost.budget.remaining` metric events
+  (§8.2), this gives an observer a live budget gauge without a
+  separate read.
+
+These fields are non-secret authority bounds and follow the
+**observing principal**, not the submitter. `credentials`, by
+contrast, follow the **submitter only**: per §14 the runtime MUST
+include `credentials` in `job.subscribed` (and `session.list_jobs`)
+solely when the subscribing principal is the job's original
+submitter, and MUST redact the field for every other authorized
+observer.
 
 After subscription, `job.event` messages for the subscribed job
 appear in the session's stream interleaved with other jobs' events,
